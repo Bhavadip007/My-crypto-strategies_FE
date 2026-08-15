@@ -9,6 +9,11 @@ export const getSettings = async () => {
   return data;
 };
 
+export const getSymbols = async () => {
+  const { data } = await API.get("/settings/symbols");
+  return data.symbols;
+};
+
 export const updateSettings = async (payload) => {
   const { data } = await API.put(
     "/settings",

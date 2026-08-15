@@ -2,15 +2,38 @@ import { useState, useEffect } from "react";
 import { Power, Send, TrendingDown, ShieldAlert } from "lucide-react";
 import {
   getSettings,
+  getSymbols,
   updateSettings,
 } from "./api";
 
-const CURRENCIES = ["ETHUSD", "BTCUSD", "SOLUSD", "XRPUSD"];
+const FALLBACK_CURRENCIES = [
+  "BTCUSD",
+  "ETHUSD",
+  "SOLUSD",
+  "XRPUSD",
+  "DOGEUSD",
+  "ZECUSD",
+  "AAVEUSD",
+  "HYPEUSD",
+  "PAXGUSD",
+  "PLTRBUSD",
+  "VELVETUSD",
+  "SKYAIUSD",
+  "RIVERUSD",
+  "MONUSD",
+  "LABUSD",
+  "KAITOUSD",
+  "EVAAUSD",
+  "BEATUSD",
+  "ACTUSD",
+];
 
 export default function App() {
   const [botOn, setBotOn] = useState(false);
   const [lotSize, setLotSize] = useState(10);
-  const [currencies, setCurrencies] = useState(["ETHUSD"]);
+  const [selectedSymbol, setSelectedSymbol] = useState("ETHUSD");
+  const [availableSymbols, setAvailableSymbols] = useState(FALLBACK_CURRENCIES);
+  const [symbolQuery, setSymbolQuery] = useState("");
   const [stopLoss, setStopLoss] = useState(15);
   const [trailingOn, setTrailingOn] = useState(true);
   const [trailingStop, setTrailingStop] = useState(5);
@@ -33,19 +56,20 @@ export default function App() {
       setTrailingStop(data.trailingStop);
 
       if (data.symbol) {
-        setCurrencies([data.symbol]);
+        setSelectedSymbol(data.symbol);
       }
     } catch (err) {
       console.error(err);
     }
-  };
 
-  const toggleCurrency = (symbol) => {
-    setCurrencies((prev) =>
-      prev.includes(symbol)
-        ? prev.filter((item) => item !== symbol)
-        : [...prev, symbol],
-    );
+    try {
+      const symbols = await getSymbols();
+      if (Array.isArray(symbols) && symbols.length) {
+        setAvailableSymbols(symbols);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleSubmit = async () => {
@@ -55,7 +79,7 @@ export default function App() {
 
       const payload = {
         botEnabled: botOn,
-        symbol: currencies[0],
+        symbol: selectedSymbol,
         lotSize,
         stopLoss,
         trailingStop,
@@ -146,21 +170,36 @@ export default function App() {
 
           <div>
             <label className="block mb-3">Currency Pair</label>
+            <p className="text-xs text-slate-400 mb-3">
+              Select one pair. After you save, the bot places orders on this
+              currency from that moment.
+            </p>
+            <input
+              type="search"
+              value={symbolQuery}
+              onChange={(e) => setSymbolQuery(e.target.value)}
+              placeholder="Search pair..."
+              className="w-full bg-slate-800 border border-slate-700 rounded p-2 mb-3"
+            />
 
-            <div className="flex flex-wrap gap-2">
-              {CURRENCIES.map((symbol) => (
-                <button
-                  key={symbol}
-                  onClick={() => toggleCurrency(symbol)}
-                  className={`px-3 py-2 rounded-lg border ${
-                    currencies.includes(symbol)
-                      ? "bg-blue-600 border-blue-600"
-                      : "border-slate-700"
-                  }`}
-                >
-                  {symbol}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto">
+              {availableSymbols
+                .filter((symbol) =>
+                  symbol.toLowerCase().includes(symbolQuery.toLowerCase()),
+                )
+                .map((symbol) => (
+                  <button
+                    key={symbol}
+                    onClick={() => setSelectedSymbol(symbol)}
+                    className={`px-3 py-2 rounded-lg border ${
+                      selectedSymbol === symbol
+                        ? "bg-blue-600 border-blue-600"
+                        : "border-slate-700"
+                    }`}
+                  >
+                    {symbol}
+                  </button>
+                ))}
             </div>
           </div>
 
