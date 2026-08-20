@@ -14,11 +14,12 @@ export const getSymbols = async () => {
   return data.symbols;
 };
 
-export const updateSettings = async (payload) => {
-  const { data } = await API.put(
-    "/settings",
-    payload
-  );
+export const getSignalStatus = async () => {
+  const { data } = await API.get("/settings/signal");
+  return data;
+};
 
+export const updateSettings = async (payload) => {
+  const { data } = await API.put("/settings", payload);
   return data;
 };

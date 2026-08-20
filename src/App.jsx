@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Power, Send, TrendingDown, ShieldAlert } from "lucide-react";
+import { Power, Send } from "lucide-react";
 import {
   getSettings,
   getSymbols,
+  getSignalStatus,
   updateSettings,
 } from "./api";
 
@@ -34,16 +35,31 @@ export default function App() {
   const [selectedSymbol, setSelectedSymbol] = useState("ETHUSD");
   const [availableSymbols, setAvailableSymbols] = useState(FALLBACK_CURRENCIES);
   const [symbolQuery, setSymbolQuery] = useState("");
-  const [stopLoss, setStopLoss] = useState(15);
-  const [trailingOn, setTrailingOn] = useState(true);
-  const [trailingStop, setTrailingStop] = useState(5);
+  const [signalInfo, setSignalInfo] = useState(null);
+  const [signalError, setSignalError] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
 
   const [status, setStatus] = useState(null);
 
   useEffect(() => {
+    const loadSignal = async () => {
+      try {
+        const data = await getSignalStatus();
+        setSignalInfo(data);
+        setSignalError(null);
+      } catch (err) {
+        console.error(err);
+        setSignalError("Could not load signal from bot API");
+      }
+    };
+
     loadSettings();
+    loadSignal();
+
+    const timer = setInterval(loadSignal, 10000);
+
+    return () => clearInterval(timer);
   }, []);
 
   const loadSettings = async () => {
@@ -52,8 +68,6 @@ export default function App() {
 
       setBotOn(data.botEnabled);
       setLotSize(data.lotSize);
-      setStopLoss(data.stopLoss);
-      setTrailingStop(data.trailingStop);
 
       if (data.symbol) {
         setSelectedSymbol(data.symbol);
@@ -81,8 +95,6 @@ export default function App() {
         botEnabled: botOn,
         symbol: selectedSymbol,
         lotSize,
-        stopLoss,
-        trailingStop,
         timeframe: "15m",
       };
 
@@ -119,6 +131,42 @@ export default function App() {
           />
 
           <span>{botOn ? "Bot Running" : "Bot Stopped"}</span>
+        </div>
+
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Strategy Signal</h2>
+
+          {signalError && (
+            <p className="text-amber-400 text-sm mb-3">{signalError}</p>
+          )}
+
+          <div
+            className={`text-4xl font-bold mb-4 ${
+              signalInfo?.signal === "BUY"
+                ? "text-green-400"
+                : signalInfo?.signal === "SELL"
+                  ? "text-red-400"
+                  : "text-slate-300"
+            }`}
+          >
+            {signalInfo?.signal || "LOADING"}
+          </div>
+
+          <div className="text-sm text-slate-400 space-y-1">
+            <p>Position: {signalInfo?.position || "FLAT"}</p>
+            <p>
+              Hist prev / curr:{" "}
+              {Number.isFinite(Number(signalInfo?.histPrev))
+                ? Number(signalInfo.histPrev).toFixed(6)
+                : "-"}{" "}
+              /{" "}
+              {Number.isFinite(Number(signalInfo?.histCurr))
+                ? Number(signalInfo.histCurr).toFixed(6)
+                : "-"}
+            </p>
+            <p>{signalInfo?.waitingFor || "Waiting for bot..."}</p>
+            {signalInfo?.symbol && <p>Pair: {signalInfo.symbol}</p>}
+          </div>
         </div>
 
         {/* Card */}
@@ -201,47 +249,6 @@ export default function App() {
                   </button>
                 ))}
             </div>
-          </div>
-
-          {/* Stop Loss */}
-
-          <div>
-            <label className="flex items-center gap-2 mb-2">
-              <ShieldAlert size={16} />
-              Stop Loss
-            </label>
-
-            <input
-              type="number"
-              value={stopLoss}
-              onChange={(e) => setStopLoss(Number(e.target.value))}
-              className="w-full bg-slate-800 border border-slate-700 rounded p-2"
-            />
-          </div>
-
-          {/* Trailing */}
-
-          <div>
-            <div className="flex justify-between mb-2">
-              <label className="flex items-center gap-2">
-                <TrendingDown size={16} />
-                Trailing Stop
-              </label>
-
-              <input
-                type="checkbox"
-                checked={trailingOn}
-                onChange={() => setTrailingOn(!trailingOn)}
-              />
-            </div>
-
-            <input
-              type="number"
-              disabled={!trailingOn}
-              value={trailingStop}
-              onChange={(e) => setTrailingStop(Number(e.target.value))}
-              className="w-full bg-slate-800 border border-slate-700 rounded p-2 disabled:opacity-50"
-            />
           </div>
         </div>
 
