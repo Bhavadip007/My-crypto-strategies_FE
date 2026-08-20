@@ -2,6 +2,10 @@ import axios from "axios";
 
 const API = axios.create({
   baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
+  timeout: 20000,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 export const getSettings = async () => {
@@ -20,6 +24,6 @@ export const getSignalStatus = async () => {
 };
 
 export const updateSettings = async (payload) => {
-  const { data } = await API.put("/settings", payload);
+  const { data } = await API.post("/settings", payload);
   return data;
 };

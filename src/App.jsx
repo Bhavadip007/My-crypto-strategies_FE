@@ -104,7 +104,9 @@ export default function App() {
     } catch (err) {
       console.error(err);
 
-      setStatus("error");
+      setStatus(
+        err.response?.data?.error || err.message || "Failed to save settings",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -268,8 +270,8 @@ export default function App() {
           <p className="text-green-500 mt-4 text-center">Settings Saved</p>
         )}
 
-        {status === "error" && (
-          <p className="text-red-500 mt-4 text-center">Failed To Save</p>
+        {status && status !== "success" && (
+          <p className="text-red-500 mt-4 text-center">{status}</p>
         )}
       </div>
     </div>
